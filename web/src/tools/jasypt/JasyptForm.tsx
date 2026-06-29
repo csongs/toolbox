@@ -22,6 +22,7 @@ export default function JasyptForm() {
   const [submitted, setSubmitted] = useState(false)
   const [keyAlgorithm, setKeyAlgorithm] = useState(ALGORITHMS[0].defaultKeyAlgo)
   const [iterations, setIterations] = useState(ALGORITHMS[0].defaultIterations)
+  const [saltSize, setSaltSize] = useState(ALGORITHMS[0].defaultSaltSizeBytes)
 
   const passwordError = submitted && !password
 
@@ -29,6 +30,7 @@ export default function JasyptForm() {
     setSelectedAlgorithm(algo)
     setKeyAlgorithm(algo.defaultKeyAlgo)
     setIterations(algo.defaultIterations)
+    setSaltSize(algo.defaultSaltSizeBytes)
     setResult(null)
     setSubmitted(false)
   }, [])
@@ -50,6 +52,7 @@ export default function JasyptForm() {
           text,
           keyAlgorithm,
           iterations,
+          saltSize,
         })
         setResult(r)
       } else {
@@ -59,13 +62,14 @@ export default function JasyptForm() {
           encryptedText: text,
           keyAlgorithm,
           iterations,
+          saltSize,
         })
         setResult(r)
       }
     } finally {
       setLoading(false)
     }
-  }, [mode, selectedAlgorithm, password, text, keyAlgorithm, iterations])
+  }, [mode, selectedAlgorithm, password, text, keyAlgorithm, iterations, saltSize])
 
   const swapResultToInput = useCallback(() => {
     if (result?.success && result.result) {
@@ -170,6 +174,8 @@ export default function JasyptForm() {
         onKeyAlgorithmChange={setKeyAlgorithm}
         iterations={iterations}
         onIterationsChange={setIterations}
+        saltSize={saltSize}
+        onSaltSizeChange={setSaltSize}
       />
 
       {selectedAlgorithm.approximate && (

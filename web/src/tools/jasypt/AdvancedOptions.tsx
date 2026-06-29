@@ -18,6 +18,8 @@ interface AdvancedOptionsProps {
   onKeyAlgorithmChange: (value: string) => void
   iterations: number
   onIterationsChange: (value: number) => void
+  saltSize: number
+  onSaltSizeChange: (value: number) => void
 }
 
 const KEY_ALGORITHMS = [
@@ -36,6 +38,8 @@ export default function AdvancedOptions({
   onKeyAlgorithmChange,
   iterations,
   onIterationsChange,
+  saltSize,
+  onSaltSizeChange,
 }: AdvancedOptionsProps) {
   const [open, setOpen] = useState(false)
 
@@ -100,6 +104,20 @@ export default function AdvancedOptions({
                   value={iterations}
                   onChange={(e) => onIterationsChange(parseInt(e.target.value) || 1000)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Salt 大小 (bytes)</Label>
+                <Input
+                  type="number"
+                  min={4}
+                  max={64}
+                  value={saltSize}
+                  onChange={(e) => onSaltSizeChange(parseInt(e.target.value) || 8)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Jasypt AES-256 演算法預設 16，AES-128 預設 8
+                </p>
               </div>
             </>
           )}

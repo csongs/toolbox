@@ -11,6 +11,7 @@ export interface AlgorithmConfig {
   defaultIvGenerator: string
   defaultKeyAlgo: string
   defaultIterations: number
+  defaultSaltSizeBytes: number   // Jasypt salt size, typically 8 or 16
   approximate?: boolean  // true if this is an approximation, not truly Jasypt-compatible
 }
 
@@ -26,6 +27,7 @@ export const ALGORITHMS: AlgorithmConfig[] = [
     defaultIvGenerator: 'RandomIvGenerator',
     defaultKeyAlgo: 'PBKDF2WithHmacSHA512',
     defaultIterations: 1000,
+    defaultSaltSizeBytes: 16,
   },
   {
     id: 'PBEWITHHMACSHA256ANDAES_256',
@@ -38,6 +40,7 @@ export const ALGORITHMS: AlgorithmConfig[] = [
     defaultIvGenerator: 'RandomIvGenerator',
     defaultKeyAlgo: 'PBKDF2WithHmacSHA256',
     defaultIterations: 1000,
+    defaultSaltSizeBytes: 16,
   },
   {
     id: 'PBEWITHHMACSHA512ANDAES_128',
@@ -50,6 +53,7 @@ export const ALGORITHMS: AlgorithmConfig[] = [
     defaultIvGenerator: 'RandomIvGenerator',
     defaultKeyAlgo: 'PBKDF2WithHmacSHA512',
     defaultIterations: 1000,
+    defaultSaltSizeBytes: 8,
   },
   {
     id: 'PBEWITHHMACSHA1ANDAES_128',
@@ -62,6 +66,7 @@ export const ALGORITHMS: AlgorithmConfig[] = [
     defaultIvGenerator: 'RandomIvGenerator',
     defaultKeyAlgo: 'PBKDF2WithHmacSHA1',
     defaultIterations: 1000,
+    defaultSaltSizeBytes: 8,
   },
   {
     id: 'PBEWITHMD5ANDDES',
@@ -74,6 +79,7 @@ export const ALGORITHMS: AlgorithmConfig[] = [
     defaultIvGenerator: '',
     defaultKeyAlgo: 'MD5',
     defaultIterations: 0,
+    defaultSaltSizeBytes: 8,
     approximate: true,
   },
 ]
@@ -84,6 +90,7 @@ export interface EncryptParams {
   text: string
   keyAlgorithm?: string
   iterations?: number
+  saltSize?: number
 }
 
 export interface DecryptParams {
@@ -92,6 +99,7 @@ export interface DecryptParams {
   encryptedText: string
   keyAlgorithm?: string
   iterations?: number
+  saltSize?: number
 }
 
 export interface CryptoResult {
@@ -184,25 +192,13 @@ async function deriveKey(
 // APPROXIMATION: Jasypt uses a custom MD5-based key derivation for PBEWithMD5AndDES.
 // Web Crypto API does not expose raw MD5 or DES, so we approximate using:
 //   - PBKDF2 with SHA-1 and 1 iteration (instead of iterative MD5 hashing)
-//   - AES-128-CBC with an 8-byte zero IV   (instead of DES/CBC/NoPadding)
+//   - AES-128-CBC with a 16-byte zero IV   (instead of DES/CBC/NoPadding)
 // This produces internally consistent results (encrypt → decrypt) but CANNOT
 // interoperate with real Jasypt implementations.
 async function deriveKeyMD5(password: string, salt: Uint8Array): Promise<CryptoKey> {
-  // For PBEWithMD5AndDES, key is derived by:
-  // hash = MD5(password + salt)  -- repeated to get enough key material
-  // The first 8 bytes become the DES key
-
   const encoder = new TextEncoder()
   const passwordBytes = encoder.encode(password)
 
-  // Concatenate password + salt
-  const combined = new Uint8Array(passwordBytes.length + salt.length)
-  combined.set(passwordBytes)
-  combined.set(salt, passwordBytes.length)
-
-  // Use SHA-1 as closest available in Web Crypto for non-PBKDF2 derivation
-  // Note: Web Crypto API does not expose raw MD5, so we use the available
-  // PBKDF2 with 1 iteration as a close approximation for this legacy algorithm
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
     toCrypto(passwordBytes),
@@ -219,8 +215,6 @@ async function deriveKeyMD5(password: string, salt: Uint8Array): Promise<CryptoK
       hash: 'SHA-1',
     },
     keyMaterial,
-    // Note: Web Crypto API does not support DES, and AES requires 128/192/256-bit keys
-    // Using 128-bit AES-CBC as a practical approximation since DES is not available
     { name: 'AES-CBC', length: 128 },
     false,
     ['encrypt', 'decrypt']
@@ -238,7 +232,8 @@ export async function encrypt(params: EncryptParams): Promise<CryptoResult> {
 
     const password = params.password
     const plainBytes = textToBytes(params.text)
-    const salt = crypto.getRandomValues(new Uint8Array(16)) // Jasypt uses 16-byte salt for AES algorithms
+    const saltSize = params.saltSize || algo.defaultSaltSizeBytes
+    const salt = crypto.getRandomValues(new Uint8Array(saltSize))
 
     let encrypted: ArrayBuffer
 
@@ -266,7 +261,6 @@ export async function encrypt(params: EncryptParams): Promise<CryptoResult> {
     } else {
       // PBEWITHMD5ANDDES — approximation using AES-128-CBC
       const key = await deriveKeyMD5(password, salt)
-      // AES-CBC requires 16-byte IV; use all zeros to match the fixed-IV pattern of the original
       const iv = new Uint8Array(16)
 
       encrypted = await crypto.subtle.encrypt(
@@ -300,19 +294,19 @@ export async function decrypt(params: DecryptParams): Promise<CryptoResult> {
     const password = params.password
     const raw = unwrapEnc(params.encryptedText.trim())
     const allBytes = base64ToBytes(raw)
+    const saltSize = params.saltSize || algo.defaultSaltSizeBytes
 
-    // Extract salt (16 bytes — Jasypt default for AES algorithms)
-    const salt = allBytes.slice(0, 16)
+    // Extract salt
+    const salt = allBytes.slice(0, saltSize)
     let cipherBytes: Uint8Array
     let iv: Uint8Array
 
     if (algo.useIV) {
-      iv = allBytes.slice(16, 32)    // next 16 bytes
-      cipherBytes = allBytes.slice(32)
+      iv = allBytes.slice(saltSize, saltSize + 16)    // next 16 bytes
+      cipherBytes = allBytes.slice(saltSize + 16)
     } else {
-      // Uses AES-128-CBC (approximation), requires 16-byte zero IV
       iv = new Uint8Array(16)
-      cipherBytes = allBytes.slice(16)
+      cipherBytes = allBytes.slice(saltSize)
     }
 
     let key: CryptoKey
