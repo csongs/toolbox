@@ -1,12 +1,6 @@
 import { type ToolDefinition } from '@/types/tools'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 interface SidebarProps {
   tools: ToolDefinition[]
@@ -14,28 +8,22 @@ interface SidebarProps {
 
 export default function Sidebar({ tools }: SidebarProps) {
   return (
-    <TooltipProvider>
+    <nav className="flex flex-col gap-y-1">
       {tools.map((tool) => (
-        <Tooltip key={tool.id}>
-          <TooltipTrigger asChild>
-            <NavLink
-              to={tool.path}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
-                )
-              }
-            >
-              <tool.icon className="h-5 w-5 shrink-0" />
-              <span className="truncate">{tool.name}</span>
-            </NavLink>
-          </TooltipTrigger>
-          <TooltipContent side="right">{tool.name}</TooltipContent>
-        </Tooltip>
+        <NavLink
+          key={tool.id}
+          to={tool.path}
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-x-2 rounded-md p-2 text-sm font-medium hover:bg-accent',
+              isActive && 'bg-accent'
+            )
+          }
+        >
+          <tool.icon className="h-5 w-5" />
+          <span>{tool.name}</span>
+        </NavLink>
       ))}
-    </TooltipProvider>
+    </nav>
   )
 }
