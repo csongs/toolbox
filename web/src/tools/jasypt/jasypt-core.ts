@@ -11,6 +11,7 @@ export interface AlgorithmConfig {
   defaultIvGenerator: string
   defaultKeyAlgo: string
   defaultIterations: number
+  approximate?: boolean  // true if this is an approximation, not truly Jasypt-compatible
 }
 
 export const ALGORITHMS: AlgorithmConfig[] = [
@@ -65,14 +66,15 @@ export const ALGORITHMS: AlgorithmConfig[] = [
   {
     id: 'PBEWITHMD5ANDDES',
     name: 'PBEWITHMD5ANDDES',
-    keySize: 64,        // DES uses 64-bit (56 effective + 8 parity)
-    cipher: 'AES-CBC',   // Jasypt maps this to DES/CBC/PKCS5Padding
+    keySize: 128,        // Approximation: Web Crypto requires 128-bit for AES, real Jasypt uses 64-bit DES
+    cipher: 'AES-CBC',   // Approximation: Jasypt maps this to DES/CBC/PKCS5Padding
     hashAlgo: 'SHA-1',
     useIV: false,
     usePBKDF2: false,    // MD5-based key derivation (not PBKDF2)
     defaultIvGenerator: '',
     defaultKeyAlgo: 'MD5',
     defaultIterations: 0,
+    approximate: true,
   },
 ]
 
@@ -179,8 +181,12 @@ async function deriveKey(
   )
 }
 
-// Jasypt uses a custom MD5-based key derivation for PBEWithMD5AndDES.
-// We derive key material by repeatedly hashing password + salt with MD5.
+// APPROXIMATION: Jasypt uses a custom MD5-based key derivation for PBEWithMD5AndDES.
+// Web Crypto API does not expose raw MD5 or DES, so we approximate using:
+//   - PBKDF2 with SHA-1 and 1 iteration (instead of iterative MD5 hashing)
+//   - AES-128-CBC with an 8-byte zero IV   (instead of DES/CBC/NoPadding)
+// This produces internally consistent results (encrypt → decrypt) but CANNOT
+// interoperate with real Jasypt implementations.
 async function deriveKeyMD5(password: string, salt: Uint8Array): Promise<CryptoKey> {
   // For PBEWithMD5AndDES, key is derived by:
   // hash = MD5(password + salt)  -- repeated to get enough key material
@@ -258,10 +264,10 @@ export async function encrypt(params: EncryptParams): Promise<CryptoResult> {
 
       return { success: true, result: wrapEnc(bytesToBase64(resultBytes)) }
     } else {
-      // PBEWITHMD5ANDDES
+      // PBEWITHMD5ANDDES — approximation using AES-128-CBC
       const key = await deriveKeyMD5(password, salt)
-      // DES/CBC/NoPadding with 8-byte IV of zeros
-      const iv = new Uint8Array(8)
+      // AES-CBC requires 16-byte IV; use all zeros to match the fixed-IV pattern of the original
+      const iv = new Uint8Array(16)
 
       encrypted = await crypto.subtle.encrypt(
         { name: 'AES-CBC', iv: toCrypto(iv) },
@@ -304,7 +310,8 @@ export async function decrypt(params: DecryptParams): Promise<CryptoResult> {
       iv = allBytes.slice(8, 24)    // next 16 bytes
       cipherBytes = allBytes.slice(24)
     } else {
-      iv = new Uint8Array(8)
+      // Uses AES-128-CBC (approximation), requires 16-byte zero IV
+      iv = new Uint8Array(16)
       cipherBytes = allBytes.slice(8)
     }
 

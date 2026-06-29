@@ -8,7 +8,7 @@ const tools: ToolDefinition[] = [
   {
     id: 'jasypt',
     name: 'Jasypt 加密/解密',
-    path: '/jasypt',
+    path: '/tools/jasypt',
     icon: Lock,
     component: JasyptPage,
   },
@@ -18,9 +18,9 @@ export default function App() {
   return (
     <Routes>
       <Route element={<Layout tools={tools} />}>
-        <Route index element={<Navigate to="/jasypt" replace />} />
-        <Route path="jasypt" element={<JasyptPage />} />
-        <Route path="*" element={<Navigate to="/jasypt" replace />} />
+        <Route index element={<Navigate to="/tools/jasypt" replace />} />
+        <Route path="tools/jasypt" element={<JasyptPage />} />
+        <Route path="*" element={<Navigate to="/tools/jasypt" replace />} />
       </Route>
     </Routes>
   )

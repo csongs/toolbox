@@ -10,7 +10,7 @@ interface LayoutProps {
   tools: ToolDefinition[]
 }
 
-export default function Layout({ tools }: LayoutProps) {
+export default function Layout({ tools }: LayoutProps): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -28,7 +28,7 @@ export default function Layout({ tools }: LayoutProps) {
         >
           <Sidebar tools={tools} />
         </aside>
-        {!sidebarOpen && (
+        {sidebarOpen && (
           <div
             className="fixed inset-0 bg-black/50 z-40 md:hidden"
             onClick={() => setSidebarOpen(false)}

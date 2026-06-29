@@ -172,6 +172,15 @@ export default function JasyptForm() {
         onIterationsChange={setIterations}
       />
 
+      {selectedAlgorithm.approximate && (
+        <Alert variant="default" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            ⚠️ 此演算法為近似實作，無法與 Jasypt 跨平台互通。加密結果僅在此工具內部有效。
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Button
         className="w-full"
         size="lg"

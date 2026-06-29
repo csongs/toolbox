@@ -78,6 +78,15 @@ describe('jasypt-core', () => {
       expect(dec.result).toBe(testText)
     })
 
+    it('should round-trip with PBEWITHMD5ANDDES (approximate)', async () => {
+      const enc = await encrypt({ algorithm: 'PBEWITHMD5ANDDES', password: testPassword, text: testText })
+      expect(enc.success).toBe(true)
+
+      const dec = await decrypt({ algorithm: 'PBEWITHMD5ANDDES', password: testPassword, encryptedText: enc.result! })
+      expect(dec.success).toBe(true)
+      expect(dec.result).toBe(testText)
+    })
+
     it('should round-trip Chinese text', async () => {
       const text = '加密測試中文內容'
       const enc = await encrypt({ algorithm: 'PBEWITHHMACSHA512ANDAES_256', password: testPassword, text })
