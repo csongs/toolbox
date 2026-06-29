@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { AlertCircle, Lock, Unlock, ArrowLeftRight } from 'lucide-react'
+import { AlertCircle, Lock, Unlock, ArrowLeftRight, Loader2 } from 'lucide-react'
 import AlgorithmSelect from './AlgorithmSelect'
 import AdvancedOptions from './AdvancedOptions'
 import CopyButton from '@/components/CopyButton'
@@ -19,17 +19,23 @@ export default function JasyptForm() {
   const [text, setText] = useState('')
   const [result, setResult] = useState<CryptoResult | null>(null)
   const [loading, setLoading] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const [keyAlgorithm, setKeyAlgorithm] = useState(ALGORITHMS[0].defaultKeyAlgo)
   const [iterations, setIterations] = useState(ALGORITHMS[0].defaultIterations)
+
+  const passwordError = submitted && !password
 
   const handleAlgorithmChange = useCallback((algo: AlgorithmConfig) => {
     setSelectedAlgorithm(algo)
     setKeyAlgorithm(algo.defaultKeyAlgo)
     setIterations(algo.defaultIterations)
     setResult(null)
+    setSubmitted(false)
   }, [])
 
   const handleExecute = useCallback(async () => {
+    setSubmitted(true)
+
     if (!password || !text) {
       setResult({ success: false, error: '請輸入密鑰和文字' })
       return
@@ -65,10 +71,17 @@ export default function JasyptForm() {
     if (result?.success && result.result) {
       setText(result.result)
       setResult(null)
+      setSubmitted(false)
       // If encrypting, switch to decrypt mode (and vice versa)
       setMode(mode === 'encrypt' ? 'decrypt' : 'encrypt')
     }
   }, [result, mode])
+
+  const handleModeChange = useCallback((v: string) => {
+    setMode(v as 'encrypt' | 'decrypt')
+    setResult(null)
+    setSubmitted(false)
+  }, [])
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -82,7 +95,7 @@ export default function JasyptForm() {
         </p>
       </div>
 
-      <Tabs value={mode} onValueChange={(v) => { setMode(v as 'encrypt' | 'decrypt'); setResult(null) }}>
+      <Tabs value={mode} onValueChange={handleModeChange}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="encrypt">加密</TabsTrigger>
           <TabsTrigger value="decrypt">解密</TabsTrigger>
@@ -97,8 +110,12 @@ export default function JasyptForm() {
               type="password"
               placeholder="請輸入加密密鑰..."
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setSubmitted(false) }}
+              className={passwordError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {passwordError && (
+              <p className="text-xs text-red-500">請輸入密鑰</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -109,6 +126,9 @@ export default function JasyptForm() {
               onChange={(e) => setText(e.target.value)}
               rows={4}
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {text.length} 字元
+            </p>
           </div>
         </TabsContent>
 
@@ -121,8 +141,12 @@ export default function JasyptForm() {
               type="password"
               placeholder="請輸入解密密鑰..."
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setSubmitted(false) }}
+              className={passwordError ? 'border-red-500 focus-visible:ring-red-500' : ''}
             />
+            {passwordError && (
+              <p className="text-xs text-red-500">請輸入密鑰</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -133,6 +157,9 @@ export default function JasyptForm() {
               onChange={(e) => setText(e.target.value)}
               rows={4}
             />
+            <p className="text-xs text-muted-foreground text-right">
+              {text.length} 字元
+            </p>
           </div>
         </TabsContent>
       </Tabs>
@@ -152,13 +179,21 @@ export default function JasyptForm() {
         disabled={loading || !password || !text}
       >
         {loading ? (
-          '處理中...'
+          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> 處理中...</>
         ) : mode === 'encrypt' ? (
           <><Lock className="h-4 w-4 mr-2" /> 加密</>
         ) : (
           <><Unlock className="h-4 w-4 mr-2" /> 解密</>
         )}
       </Button>
+
+      {!result && !loading && (
+        <Card className="border-dashed">
+          <CardContent className="py-8 text-center text-muted-foreground">
+            <p>輸入密鑰與文字後，點擊上方按鈕執行{mode === 'encrypt' ? '加密' : '解密'}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {result && (
         <Card>

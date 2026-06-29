@@ -1,10 +1,23 @@
-import { Shield } from 'lucide-react'
+import { Shield, Menu } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import ThemeToggle from './ThemeToggle'
 
-export default function NavBar() {
+interface NavBarProps {
+  onToggleSidebar?: () => void
+}
+
+export default function NavBar({ onToggleSidebar }: NavBarProps) {
   return (
     <header className="border-b">
       <div className="flex h-14 items-center px-4 gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={onToggleSidebar}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
         <Shield className="h-6 w-6" />
         <span className="font-semibold">Crypto Toolbox</span>
         <div className="ml-auto">
