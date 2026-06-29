@@ -18,8 +18,7 @@ export default function NavBar({ onToggleSidebar }: NavBarProps) {
         >
           <Menu className="h-5 w-5" />
         </Button>
-        <Shield className="h-6 w-6" />
-        <span className="font-semibold">Crypto Toolbox</span>
+        <span className="font-semibold">TOOLBOX</span>
         <div className="ml-auto">
           <ThemeToggle />
         </div>
