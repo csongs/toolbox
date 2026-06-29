@@ -29,8 +29,8 @@ export default function Sidebar({ tools }: SidebarProps) {
                 )
               }
             >
-              <tool.icon className="h-5 w-5 shrink-0" />
-              <span className="truncate">{tool.name}</span>
+              <tool.icon className="h-5 w-5 shrink-0 leading-none" />
+              <span className="truncate leading-none">{tool.name}</span>
             </NavLink>
           </TooltipTrigger>
           <TooltipContent side="right">{tool.name}</TooltipContent>
