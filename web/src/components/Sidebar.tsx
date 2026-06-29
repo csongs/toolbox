@@ -22,15 +22,15 @@ export default function Sidebar({ tools }: SidebarProps) {
               to={tool.path}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors',
                   isActive
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-muted'
                 )
               }
             >
-              <tool.icon className="h-4 w-4" />
-              {tool.name}
+              <tool.icon className="h-5 w-5 shrink-0" />
+              <span className="truncate">{tool.name}</span>
             </NavLink>
           </TooltipTrigger>
           <TooltipContent side="right">{tool.name}</TooltipContent>
