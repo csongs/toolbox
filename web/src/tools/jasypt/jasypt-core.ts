@@ -238,7 +238,7 @@ export async function encrypt(params: EncryptParams): Promise<CryptoResult> {
 
     const password = params.password
     const plainBytes = textToBytes(params.text)
-    const salt = crypto.getRandomValues(new Uint8Array(8))
+    const salt = crypto.getRandomValues(new Uint8Array(16)) // Jasypt uses 16-byte salt for AES algorithms
 
     let encrypted: ArrayBuffer
 
@@ -301,18 +301,18 @@ export async function decrypt(params: DecryptParams): Promise<CryptoResult> {
     const raw = unwrapEnc(params.encryptedText.trim())
     const allBytes = base64ToBytes(raw)
 
-    // Extract salt (8 bytes)
-    const salt = allBytes.slice(0, 8)
+    // Extract salt (16 bytes — Jasypt default for AES algorithms)
+    const salt = allBytes.slice(0, 16)
     let cipherBytes: Uint8Array
     let iv: Uint8Array
 
     if (algo.useIV) {
-      iv = allBytes.slice(8, 24)    // next 16 bytes
-      cipherBytes = allBytes.slice(24)
+      iv = allBytes.slice(16, 32)    // next 16 bytes
+      cipherBytes = allBytes.slice(32)
     } else {
       // Uses AES-128-CBC (approximation), requires 16-byte zero IV
       iv = new Uint8Array(16)
-      cipherBytes = allBytes.slice(8)
+      cipherBytes = allBytes.slice(16)
     }
 
     let key: CryptoKey
