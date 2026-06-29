@@ -283,7 +283,7 @@ export async function encrypt(params: EncryptParams): Promise<CryptoResult> {
       return { success: true, result: wrapEnc(bytesToBase64(resultBytes)) }
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Encryption failed'
+    const message = err instanceof Error ? err.message || '(no message)' : String(err)
     return { success: false, error: message }
   }
 }
@@ -333,7 +333,10 @@ export async function decrypt(params: DecryptParams): Promise<CryptoResult> {
 
     return { success: true, result: bytesToText(new Uint8Array(decrypted)) }
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Decryption failed'
-    return { success: false, error: `Decryption failed: ${message}` }
+    const errorName = err instanceof DOMException ? err.name
+      : err instanceof Error ? err.constructor.name
+      : 'UnknownError'
+    const message = err instanceof Error ? err.message || '(no message)' : String(err)
+    return { success: false, error: `[${errorName}] ${message}` }
   }
 }
